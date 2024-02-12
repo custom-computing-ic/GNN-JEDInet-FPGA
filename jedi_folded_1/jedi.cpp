@@ -19,7 +19,7 @@
 #include <iostream>
 
 #include "jedi.h"
-#include "../nnet_utils/nnet_jedi.h"
+#include "../nnet_utils_opt/nnet_jedi.h"
 
 #include "weights50p/w1.h"
 #include "weights50p/w2.h"
@@ -48,7 +48,6 @@ void jedi(
         result_t result[N_OUTPUT_3]
     ){
         #pragma HLS DATAFLOW
-        // #pragma HLS INLINE recursive
         
         input_t in_dup1[N_o][P];
         input_t in_dup2[N_o][P];
@@ -68,66 +67,25 @@ void jedi(
         nnet::jedi_duplicate<input_t, jedi1_config>(I, in_dup1, in_dup2, in_dup3); 
 
         input_t B[N_e][2*P];
-        // const int factor_B=2*P;
-        const int factor_B=4*P;
+        const int factor_B=2*P;
         #pragma HLS ARRAY_PARTITION variable=B cyclic factor = factor_B
-        
         // mmm1, mmm2, and concat
-        // nnet::jedi1_mmm<input_t, input_t, jedi1_config>(in_dup1, in_dup2, B);
+        nnet::jedi1_mmm<input_t, input_t, jedi1_config>(in_dup1, in_dup2, B);
         using data_T = input_t;
-        using res_T = input_t;
-        using CONFIG_T = jedi1_config;
-        data_T B_top[N_e][P];
-        data_T B_bot[N_e][P];
-
-        const int factor_B_top=P;
-        const int factor_B_bot=P;
-        const int factor_B_d1 =DPP;
-        
-        #pragma HLS ARRAY_PARTITION variable=B_top cyclic factor=factor_B_top dim=2
-        #pragma HLS ARRAY_PARTITION variable=B_bot cyclic factor=factor_B_bot dim=2
-        #pragma HLS ARRAY_PARTITION variable=B_top cyclic factor=factor_B_d1 dim=1
-        #pragma HLS ARRAY_PARTITION variable=B_bot cyclic factor=factor_B_d1 dim=1
-        
-        // mmm1, input * Rr
-        nnet::jedi1_mmm_rr<data_T, res_T, typename CONFIG_T::mult_1>(in_dup1, B_top);
-        // mmm2, input * Rs
-        nnet::jedi1_mmm_rs<data_T, res_T, typename CONFIG_T::mult_2>(in_dup2, B_bot);
-        // concat
-        nnet::jedi_concat_t_ux<data_T, res_T, typename CONFIG_T::concat_1>(B_top, B_bot, B);
 		
         input_t E[N_e][D_e];
-        const int factor_E=D_e;        
+        const int factor_E=D_e;
         #pragma HLS ARRAY_PARTITION variable=E cyclic factor = factor_E
-        #pragma HLS ARRAY_PARTITION variable=E complete dim=1
-        #pragma HLS ARRAY_PARTITION variable=E complete dim=2
         nnet::jedi_dnn1<input_t, input_t, dense1_config>(B, E, w1, w2, w3, b1, b2, b3);
 		
         input_t C[N_o][P + D_e];
-        // const int factor_C=P+D_e;
         const int factor_C=P+D_e;
-        #pragma HLS ARRAY_PARTITION variable=C cyclic factor = factor_C        
-        // nnet::jedi2_mmm<input_t, input_t, jedi2_config>(in_dup3, E, C);
-        using data_T2 = input_t;
-        using res_T2 = input_t;
-        using CONFIG_T2 = jedi2_config;
-
-        data_T2 E_bar[N_o][D_e];
-        const int factor_E_bar=D_e;        
-        #pragma HLS ARRAY_PARTITION variable=E_bar cyclic factor = factor_E_bar        
-        #pragma HLS ARRAY_PARTITION variable=E_bar complete dim=1
-        #pragma HLS ARRAY_PARTITION variable=E_bar complete dim=2
-        // multiply by R_r_T
-        nnet::jedi2_mmm_rrt<data_T2, res_T2, typename CONFIG_T2::mult_3>(E, E_bar);
-
-        // concatenate I with E_bar
-        nnet::jedi_concat_t<data_T2, res_T2, typename CONFIG_T2::concat_2>(in_dup3, E_bar, C);
+        #pragma HLS ARRAY_PARTITION variable=C cyclic factor = factor_C
+        nnet::jedi2_mmm<input_t, input_t, jedi2_config>(in_dup3, E, C);
 
         input_t O[N_o][D_o];
-        const int factor_O=D_o;        
-        #pragma HLS ARRAY_PARTITION variable=O cyclic factor = factor_O        
-        #pragma HLS ARRAY_PARTITION variable=O complete dim=1
-        #pragma HLS ARRAY_PARTITION variable=O complete dim=2
+        const int factor_O=D_o;
+        #pragma HLS ARRAY_PARTITION variable=O cyclic factor = factor_O
         nnet::jedi_dnn2_t<input_t, input_t, dense2_config>(C, O, w4, w5, w6, b4, b5, b6);
 		
         nnet::jedi_dnn3_t<input_t, input_t, dense3_config>(O, result, w7, w8, w9, b7, b8, b9);
