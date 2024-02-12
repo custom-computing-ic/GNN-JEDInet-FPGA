@@ -99,8 +99,6 @@ void jedi(
         input_t E[N_e][D_e];
         const int factor_E=D_e;        
         #pragma HLS ARRAY_PARTITION variable=E cyclic factor = factor_E
-        #pragma HLS ARRAY_PARTITION variable=E complete dim=1
-        #pragma HLS ARRAY_PARTITION variable=E complete dim=2
         nnet::jedi_dnn1<input_t, input_t, dense1_config>(B, E, w1, w2, w3, b1, b2, b3);
 		
         input_t C[N_o][P + D_e];
@@ -114,9 +112,7 @@ void jedi(
 
         data_T2 E_bar[N_o][D_e];
         const int factor_E_bar=D_e;        
-        #pragma HLS ARRAY_PARTITION variable=E_bar cyclic factor = factor_E_bar        
-        #pragma HLS ARRAY_PARTITION variable=E_bar complete dim=1
-        #pragma HLS ARRAY_PARTITION variable=E_bar complete dim=2
+        #pragma HLS ARRAY_PARTITION variable=E_bar cyclic factor = factor_E_bar                
         // multiply by R_r_T
         nnet::jedi2_mmm_rrt<data_T2, res_T2, typename CONFIG_T2::mult_3>(E, E_bar);
 
@@ -125,9 +121,7 @@ void jedi(
 
         input_t O[N_o][D_o];
         const int factor_O=D_o;        
-        #pragma HLS ARRAY_PARTITION variable=O cyclic factor = factor_O        
-        #pragma HLS ARRAY_PARTITION variable=O complete dim=1
-        #pragma HLS ARRAY_PARTITION variable=O complete dim=2
+        #pragma HLS ARRAY_PARTITION variable=O cyclic factor = factor_O                
         nnet::jedi_dnn2_t<input_t, input_t, dense2_config>(C, O, w4, w5, w6, b4, b5, b6);
 		
         nnet::jedi_dnn3_t<input_t, input_t, dense3_config>(O, result, w7, w8, w9, b7, b8, b9);

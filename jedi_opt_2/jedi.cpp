@@ -110,7 +110,7 @@ void jedi(
         const int factor_E_bar=D_e;
         #pragma HLS ARRAY_PARTITION variable=E_bar cyclic factor = factor_E_bar
         // multiply by R_r_T
-        nnet::jedi2_mmm_rrt_opt<data_T2, res_T2, typename CONFIG_T2::mult_3>(E, E_bar);
+        nnet::jedi2_mmm_rrt<data_T2, res_T2, typename CONFIG_T2::mult_3>(E, E_bar);
 
         // concatenate I with E_bar
         nnet::jedi_concat_t<data_T2, res_T2, typename CONFIG_T2::concat_2>(in_dup3, E_bar, C);
