@@ -98,7 +98,9 @@ void jedi(
 		
         input_t E[N_e][D_e];
         const int factor_E=D_e;        
-        #pragma HLS ARRAY_PARTITION variable=E cyclic factor = factor_E
+        // #pragma HLS ARRAY_PARTITION variable=E cyclic factor = factor_E
+        #pragma HLS ARRAY_PARTITION variable=E complete dim=2
+        #pragma HLS ARRAY_PARTITION variable=E complete dim=1
         nnet::jedi_dnn1<input_t, input_t, dense1_config>(B, E, w1, w2, w3, b1, b2, b3);
 		
         input_t C[N_o][P + D_e];
