@@ -59,7 +59,7 @@ void jedi(
 
         input_t B[N_e][2*P];
         const int factor_B=2*P;
-        #pragma HLS ARRAY_PARTITION variable=B cyclic factor = factor_B
+        // #pragma HLS ARRAY_PARTITION variable=B cyclic factor = factor_B
         // mmm1, mmm2, and concat
         // nnet::jedi1_mmm<input_t, input_t, jedi1_config>(in_dup1, in_dup2, B);
         using data_T = input_t;

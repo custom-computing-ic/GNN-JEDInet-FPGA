@@ -450,7 +450,7 @@ namespace nnet {
             res_T  B[CONFIG_T::N_e_p][2*CONFIG_T::P_p]
             //res_T  B[2*CONFIG_T::P_p][CONFIG_T::N_e_p]
     ) {
-        // #pragma HLS INLINE
+        #pragma HLS INLINE OFF
         data_T B_top[CONFIG_T::N_e_p][CONFIG_T::P_p];
         data_T B_bot[CONFIG_T::N_e_p][CONFIG_T::P_p];
 
@@ -579,7 +579,7 @@ namespace nnet {
             res_T C[CONFIG_T::N_o_p][CONFIG_T::P_p + CONFIG_T::D_e_p]
     ){
         
-        // #pragma HLS INLINE
+        #pragma HLS INLINE OFF
         // declare E_bar array
         data_T E_bar[CONFIG_T::N_o_p][CONFIG_T::D_e_p];
         const int factor_E_bar=CONFIG_T::D_e_p;
