@@ -121,7 +121,9 @@ void jedi(
 
         input_t O[N_o][D_o];
         const int factor_O=D_o;        
-        #pragma HLS ARRAY_PARTITION variable=O cyclic factor = factor_O                
+        // #pragma HLS ARRAY_PARTITION variable=O cyclic factor = factor_O                
+        #pragma HLS ARRAY_PARTITION variable=O complete dim=2 
+        #pragma HLS ARRAY_PARTITION variable=O complete dim=1
         nnet::jedi_dnn2_t<input_t, input_t, dense2_config>(C, O, w4, w5, w6, b4, b5, b6);
 		
         nnet::jedi_dnn3_t<input_t, input_t, dense3_config>(O, result, w7, w8, w9, b7, b8, b9);
