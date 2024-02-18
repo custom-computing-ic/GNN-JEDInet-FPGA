@@ -71,6 +71,27 @@ namespace nnet {
 
     }
 
+    template<class data_T, class res_T, typename CONFIG_T>
+    void jedi1_mmm_merged(
+            data_T in1[CONFIG_T::N_o_p][CONFIG_T::P_p],
+            data_T in2[CONFIG_T::N_o_p][CONFIG_T::P_p],
+            res_T  B[CONFIG_T::N_e_p][2*CONFIG_T::P_p]
+    ) {        
+        int index;
+        for (int i = 0; i < CONFIG_T::N_o_p; i++) {
+		    #pragma HLS PIPELINE 
+            #pragma HLS dependence variable=B intra false
+            for (int k = 0; k < (CONFIG_T::N_o_p - 1); k++) {
+                //#pragma HLS dependence variable=res inter false
+                for (int j = 0; j < CONFIG_T::P_p; j++) {
+                    B[k+i*(CONFIG_T::N_o_p-1)][j] = in1[i][j];
+                    index = (k<i)? k : (k+1);
+                    B[k+i*(CONFIG_T::N_o_p-1)][j + CONFIG_T::P_p] = in2[index][j];
+                }
+            }
+        }
+    }
+
 
     template<class data_T, class res_T, typename CONFIG_T>
     void jedi2_mmm_rrt_t(
