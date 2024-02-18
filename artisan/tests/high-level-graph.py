@@ -15,9 +15,21 @@ def build_graph(main_func):
 
     if i > 0:
       g.add_edge(ids[i-1], id)
+  return g
   
   
-
+def get_array_args(graph):
+  for vx in graph.vertices:
+    call = graph.pmap[vx]['func']
+    print(call.name)
+    print([arg.unparse() for arg in call.args])
+    """
+    Pseudocode:
+    1. collect all arrays in a list
+    2. Figure out cyclic factors for all of them (len of second dimension)
+    3. If only one dim, or lower than a threshold size, use complete
+    4. Insert pragmas
+    """
 
 name_main_func = "jedi"
 if len(sys.argv) > 1:
@@ -28,4 +40,5 @@ ast = art.Ast("../../jedi50p_baseline_u1/jedi.cpp -I ../artisan/include")
 
 main_fn = ast.query('fn{FunctionDecl}', where=lambda fn: fn.name == name_main_func)
 
-build_graph(main_fn[0].fn)
+graph = build_graph(main_fn[0].fn)
+get_array_args(graph)
