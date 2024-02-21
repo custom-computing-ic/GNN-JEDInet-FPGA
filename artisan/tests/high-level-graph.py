@@ -19,17 +19,40 @@ def build_graph(main_func):
   
   
 def get_array_args(graph):
+  arrays = set()
+  # arrays used in function calls
   for vx in graph.vertices:
     call = graph.pmap[vx]['func']
-    print(call.name)
-    print([arg.unparse() for arg in call.args])
-    """
-    Pseudocode:
-    1. collect all arrays in a list
-    2. Figure out cyclic factors for all of them (len of second dimension)
-    3. If only one dim, or lower than a threshold size, use complete
-    4. Insert pragmas
-    """
+    # print(call.name)
+    # print([arg.unparse() for arg in call.args])
+    for arg in call.args:
+      arrays.add(arg.unparse())
+
+  return arrays
+
+def filter_array_defined(main_func, arrays):
+
+  def is_array(shape):        
+    return shape.dim is not None
+  
+  decls = main_func.query('decl{DeclStmt}={1}>var{VarDecl}')
+  defined = set()
+  for row in decls:   
+    name =  row.var.name        
+    if name in arrays and is_array(row.var.shape):
+      defined.add(row.var.name)
+  print(defined)
+  return defined
+
+  # arrays declared in this scope
+
+  """
+  Pseudocode:
+  1. collect all arrays in a list
+  2. Figure out cyclic factors for all of them (len of second dimension)
+  3. If only one dim, or lower than a threshold size, use complete
+  4. Insert pragmas
+  """
 
 name_main_func = "jedi"
 if len(sys.argv) > 1:
@@ -41,4 +64,6 @@ ast = art.Ast("../../jedi50p_baseline_u1/jedi.cpp -I ../artisan/include")
 main_fn = ast.query('fn{FunctionDecl}', where=lambda fn: fn.name == name_main_func)
 
 graph = build_graph(main_fn[0].fn)
-get_array_args(graph)
+arrays = filter_array_defined(main_fn[0].fn, get_array_args(graph))
+
+
