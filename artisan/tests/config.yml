@@ -1,0 +1,21 @@
+jedi:
+  assume: [dataflow]
+  tasks:
+    - jedi_duplicate:
+        inputs: [I]
+        outputs: [in_dup1, in_dup2, in_dup3]
+    - jedi1_mmm:
+        inputs: [in_dup1, in_dup2]
+        outputs: [B]
+    - jedi_dnn1:
+        inputs: [B, w1, w2, w3, b1, b2, b3]
+        outputs: [E]
+    - jedi2_mmm:
+        inputs: [in_dup3, E]
+        outputs: [C]
+    - jedi_dnn2_t:
+        inputs: [C, w4, w5, w6, b4, b5, b6]
+        outputs: [O]
+    - jedi_dnn3_t:
+        inputs: [O, w7, w8, w9, b7, b8, b9]
+        outputs: [result]
