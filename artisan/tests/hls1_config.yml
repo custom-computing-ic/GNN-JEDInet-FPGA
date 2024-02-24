@@ -1,0 +1,27 @@
+myproject:
+  assume: [dataflow]
+  tasks:
+    - dense:
+        inputs: [fc1_input, w2, b2]
+        outputs: [layer2_out]
+    - relu:
+        inputs: [layer2_out]
+        outputs: [layer4_out]
+    - dense:
+        inputs: [layer4_out, w5, b5]
+        outputs: [layer5_out]
+    - relu:
+        inputs: [layer5_out]
+        outputs: [layer7_out]
+    - dense:
+        inputs: [layer7_out, w8, b8]
+        outputs: [layer8_out]
+    - relu:
+        inputs: [layer8_out]
+        outputs: [layer10_out]
+    - dense:
+        inputs: [layer10_out, w11, b11]
+        outputs: [layer11_out]
+    - softmax:
+        inputs: [layer11_out]
+        outputs: [layer13_out]
