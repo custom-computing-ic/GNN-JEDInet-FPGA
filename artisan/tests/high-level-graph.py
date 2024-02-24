@@ -11,18 +11,37 @@ OUTPUTS = 'outputs'
 DATAFLOW = 'dataflow'
 
 def build_graph(main_func, tasks):
+  NAME = 'name'
+  FUNC = 'func'
   g = hgr.HGraph()
-  calls = main_func.query('call{CallExpr}', where = lambda call: len(call.children) > 0)
-  # print(calls)
+  g.vstyle['label'] = lambda gr, v_id: gr.pmap[v_id][NAME] 
+  calls = main_func.query('call{CallExpr}', where = lambda call: len(call.children) > 0)  
 
-  ids = []
+  keysToIds = {}
+  for task in tasks:
+    for key in task:
+      keysToIds[key] = id = g.add_vx()
+      g.pmap[id][NAME] = key   
+      g.pmap[id][INPUTS] = task[key][INPUTS]
+      g.pmap[id][OUTPUTS] = task[key][OUTPUTS]    
+        
   for i, row in enumerate(calls):
-    id = g.add_vx()
-    g.pmap[id]['func'] = row.call
-    ids.append(id)
+    assigned = False
+    for name in keysToIds.keys():
+      if name == row.call.name:
+        assigned = True
+        g.pmap[keysToIds[name]][FUNC] = row.call
+    if not assigned:
+      print(f"[Error] Function '{row.call.name}' not found in config.")
+      return None
+    
+    id = keysToIds[row.call.name]
+    outputs = g.pmap[id][OUTPUTS]
+    for output in outputs:
+      for other_id in keysToIds.values():
+        if output in g.pmap[other_id][INPUTS]:
+          g.add_edge(id, other_id)
 
-    if i > 0:
-      g.add_edge(ids[i-1], id)
   return g
 
 def _check_dataflow(ast):  
@@ -51,6 +70,7 @@ def build_dataflow_graph(config_file, name_main_fn, ast, main_func):
       
       tasks = main_config[TASKS]
       graph = build_graph(main_func, tasks)
+      return graph
 
     else:
       print(f"[Error] '{name_main_fn}' not found in config file {config_file}")
@@ -80,7 +100,7 @@ def filter_array_defined(main_func, arrays):
     name =  row.var.name        
     if name in arrays and is_array(row.var.shape):
       defined.add(row.var.name)
-  print(defined)
+  # print(defined)
   return defined
 
   # arrays declared in this scope
@@ -108,7 +128,9 @@ main_fn = ast.query('fn{FunctionDecl}', where=lambda fn: fn.name == name_main_fu
 
 df_graph = build_dataflow_graph(config, name_main_func, ast, main_fn[0].fn)
 
-graph = build_graph(main_fn[0].fn)
-arrays = filter_array_defined(main_fn[0].fn, get_array_args(graph))
+# graph = build_graph(main_fn[0].fn, [])
+df_graph.render()
+# graph.view()
+# arrays = filter_array_defined(main_fn[0].fn, get_array_args(graph))
 
 
