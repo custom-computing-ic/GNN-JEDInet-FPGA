@@ -10,32 +10,53 @@ OUTPUTS = 'outputs'
 
 DATAFLOW = 'dataflow'
 
+keysToReplicas = {}
+def _gen_next_name(name):
+  if name in keysToReplicas:
+    keysToReplicas[name] += 1
+    return f"{name} {keysToReplicas[name]}"
+  keysToReplicas[name] = 2
+  return f"{name} 2"
+
 def build_graph(main_func, tasks):
   NAME = 'name'
   FUNC = 'func'
   g = hgr.HGraph()
   g.vstyle['label'] = lambda gr, v_id: gr.pmap[v_id][NAME] 
-  calls = main_func.query('call{CallExpr}', where = lambda call: len(call.children) > 0)  
+  calls = main_func.query('call{CallExpr}', where = lambda call: len(call.children) > 0)    
 
   keysToIds = {}
   for task in tasks:
-    for key in task:
+    for k in task:
+      key = k
+      if k in keysToIds:
+        # duplicate use of the same task
+        key = _gen_next_name(k)        
       keysToIds[key] = id = g.add_vx()
       g.pmap[id][NAME] = key   
-      g.pmap[id][INPUTS] = task[key][INPUTS]
-      g.pmap[id][OUTPUTS] = task[key][OUTPUTS]    
+      g.pmap[id][INPUTS] = task[k][INPUTS]
+      g.pmap[id][OUTPUTS] = task[k][OUTPUTS]
         
+  used = {}
+  for key in keysToIds.keys():    
+    used[key] = False
+
   for i, row in enumerate(calls):
     assigned = False
+    assignedName = ""    
     for name in keysToIds.keys():
-      if name == row.call.name:
+      if not used[name] and row.call.name in name:
+        used[name] = True
         assigned = True
+        assignedName = name
         g.pmap[keysToIds[name]][FUNC] = row.call
-    if not assigned:
-      print(f"[Error] Function '{row.call.name}' not found in config.")
-      return None
+        break
+    if not assigned:      
+      print(f"[Warning] Function '{row.call.unparse()}' not found in config. " + 
+      "It will not be added to the dataflow graph.")
+      continue   
     
-    id = keysToIds[row.call.name]
+    id = keysToIds[assignedName]
     outputs = g.pmap[id][OUTPUTS]
     for output in outputs:
       for other_id in keysToIds.values():
@@ -122,7 +143,9 @@ if len(sys.argv) > 2:
   config = sys.argv[2]
 
 # include: relative path to jedi50p_baseline_u1/ (workdir)
-ast = art.Ast("../../jedi50p_baseline_u1/jedi.cpp -I ../artisan/include")
+# ast = art.Ast("../../jedi50p_baseline_u1/jedi.cpp -I ../artisan/include")
+path = "/mnt/ccnas2/bdp/ad4220/hls4ml-tutorial/model1/hls4ml_prj_df/firmware/"
+ast = art.Ast(f"{path}myproject.cpp -I {path}ap_types/")
 
 main_fn = ast.query('fn{FunctionDecl}', where=lambda fn: fn.name == name_main_func)
 
