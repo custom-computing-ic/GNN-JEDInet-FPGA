@@ -2,7 +2,7 @@ import artisan as art
 import heterograph as hgr
 import sys
 import yaml
-import utils.parseTaskData as parse
+import parseTaskData as parse
 
 ASSUME = 'assume'
 TASKS = 'tasks'
@@ -19,11 +19,13 @@ def _gen_next_name(name):
   keysToReplicas[name] = 2
   return f"{name} 2"
 
-def build_graph(main_func, tasks, report_dir):
+def build_graph(main_func, name_main_fn, tasks, report_dir):
   NAME = 'name'
   FUNC = 'func'
-  g = hgr.HGraph()
-  g.vstyle['label'] = lambda gr, v_id: gr.pmap[v_id][NAME] 
+  REPORT = 'report'
+  g = hgr.HGraph()  
+  g.vstyle['label'] = lambda gr, v_id: "%s | { %s } " % (gr.pmap[v_id][NAME], gr.pmap[v_id][REPORT]['best_case_latency'])
+  # g.vstyle['label'] = lambda gr, v_id: gr.pmap[v_id][NAME] 
   calls = main_func.query('call{CallExpr}', where = lambda call: len(call.children) > 0)    
 
   keysToIds = {}
@@ -32,14 +34,14 @@ def build_graph(main_func, tasks, report_dir):
       key = k
       if k in keysToIds:
         # duplicate use of the same task
-        key = _gen_next_name(k)        
+        key = _gen_next_name(k)
       keysToIds[key] = id = g.add_vx()
       g.pmap[id][NAME] = key   
       g.pmap[id][INPUTS] = task[k][INPUTS]
       g.pmap[id][OUTPUTS] = task[k][OUTPUTS]
         
   used = {}
-  reports = parse.parseReportForTasks(keysToIds.keys(), report_dir)
+  reports = parse.parseReportForTasks(keysToIds.keys(), name_main_fn, report_dir)  
   for key in keysToIds.keys():    
     used[key] = False
 
@@ -51,7 +53,9 @@ def build_graph(main_func, tasks, report_dir):
         used[name] = True
         assigned = True
         assignedName = name
-        g.pmap[keysToIds[name]][FUNC] = row.call
+        id = keysToIds[name]
+        g.pmap[id][FUNC] = row.call
+        g.pmap[id][REPORT] = reports[name]
         break
     if not assigned:      
       print(f"[Warning] Function '{row.call.unparse()}' not found in config. " + 
@@ -92,7 +96,7 @@ def build_dataflow_graph(config_file, name_main_fn, ast, main_func, report_dir):
             return None
       
       tasks = main_config[TASKS]      
-      graph = build_graph(main_func, tasks, report_dir)
+      graph = build_graph(main_func, name_main_fn, tasks, report_dir)
       return graph
 
     else:
@@ -148,7 +152,7 @@ if len(sys.argv) > 2:
 # ast = art.Ast("../../jedi50p_baseline_u1/jedi.cpp -I ../artisan/include")
 # report_dir = "/mnt/ccnas2/bdp/ad4220/GNN-JEDInet-FPGA/jedi_folded_2/prj_cmd01/jedi_prj/solution1/syn/report"
 path = "/mnt/ccnas2/bdp/ad4220/hls4ml-tutorial/model1/hls4ml_prj_df/firmware/"
-report_dir = "/mnt/ccnas2/bdp/ad4220/hls4ml-tutorial/model_1/hls4ml_prj/myproject_prj/solution1/syn/report"
+report_dir = "/mnt/ccnas2/bdp/ad4220/hls4ml-tutorial/model1/hls4ml_prj_df/myproject_prj/solution1/syn/report"
 ast = art.Ast(f"{path}myproject.cpp -I {path}ap_types/")
 
 main_fn = ast.query('fn{FunctionDecl}', where=lambda fn: fn.name == name_main_func)
