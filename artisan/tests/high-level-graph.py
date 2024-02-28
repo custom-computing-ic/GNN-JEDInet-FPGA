@@ -2,6 +2,7 @@ import artisan as art
 import heterograph as hgr
 import sys
 import yaml
+import utils.parseTaskData as parse
 
 ASSUME = 'assume'
 TASKS = 'tasks'
@@ -18,7 +19,7 @@ def _gen_next_name(name):
   keysToReplicas[name] = 2
   return f"{name} 2"
 
-def build_graph(main_func, tasks):
+def build_graph(main_func, tasks, report_dir):
   NAME = 'name'
   FUNC = 'func'
   g = hgr.HGraph()
@@ -38,6 +39,7 @@ def build_graph(main_func, tasks):
       g.pmap[id][OUTPUTS] = task[k][OUTPUTS]
         
   used = {}
+  reports = parse.parseReportForTasks(keysToIds.keys(), report_dir)
   for key in keysToIds.keys():    
     used[key] = False
 
@@ -76,7 +78,7 @@ def _check_dataflow(ast):
         return True
   return False
 
-def build_dataflow_graph(config_file, name_main_fn, ast, main_func):
+def build_dataflow_graph(config_file, name_main_fn, ast, main_func, report_dir):
   with open(config_file, 'r') as file:
     config = yaml.safe_load(file)
     if name_main_fn in config:
@@ -89,8 +91,8 @@ def build_dataflow_graph(config_file, name_main_fn, ast, main_func):
             print(f"[Info] No dataflow design found. Exiting graph generation.")
             return None
       
-      tasks = main_config[TASKS]
-      graph = build_graph(main_func, tasks)
+      tasks = main_config[TASKS]      
+      graph = build_graph(main_func, tasks, report_dir)
       return graph
 
     else:
@@ -144,12 +146,14 @@ if len(sys.argv) > 2:
 
 # include: relative path to jedi50p_baseline_u1/ (workdir)
 # ast = art.Ast("../../jedi50p_baseline_u1/jedi.cpp -I ../artisan/include")
+# report_dir = "/mnt/ccnas2/bdp/ad4220/GNN-JEDInet-FPGA/jedi_folded_2/prj_cmd01/jedi_prj/solution1/syn/report"
 path = "/mnt/ccnas2/bdp/ad4220/hls4ml-tutorial/model1/hls4ml_prj_df/firmware/"
+report_dir = "/mnt/ccnas2/bdp/ad4220/hls4ml-tutorial/model_1/hls4ml_prj/myproject_prj/solution1/syn/report"
 ast = art.Ast(f"{path}myproject.cpp -I {path}ap_types/")
 
 main_fn = ast.query('fn{FunctionDecl}', where=lambda fn: fn.name == name_main_func)
 
-df_graph = build_dataflow_graph(config, name_main_func, ast, main_fn[0].fn)
+df_graph = build_dataflow_graph(config, name_main_func, ast, main_fn[0].fn, report_dir)
 
 # graph = build_graph(main_fn[0].fn, [])
 df_graph.render()
