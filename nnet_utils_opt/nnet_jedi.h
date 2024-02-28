@@ -79,8 +79,8 @@ namespace nnet {
     ) {        
         int index;
         for (int i = 0; i < CONFIG_T::N_o_p; i++) {
-		    #pragma HLS PIPELINE 
-            #pragma HLS dependence variable=B intra false
+		    // #pragma HLS PIPELINE 
+            // #pragma HLS dependence variable=B intra false
             for (int k = 0; k < (CONFIG_T::N_o_p - 1); k++) {
                 //#pragma HLS dependence variable=res inter false
                 for (int j = 0; j < CONFIG_T::P_p; j++) {
