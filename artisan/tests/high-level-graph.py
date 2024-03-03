@@ -36,10 +36,20 @@ FUNC = 'func'
 REPORT = 'report'
 MAXES = 'maxes'
 MINS = 'mins'
+TOTAL = 'total'
+II = 'interval_max'
+LATENCY = 'worst_case_latency'
 
 def _set_style_for_metric(g, metric):
   g.vstyle['label'] = lambda gr, v_id: "%s | { %s } " % (gr.pmap[v_id][NAME], gr.pmap[v_id][REPORT][metric])
   g.style['label'] = metric
+  g.vstyle['fillcolor'] = lambda gr, v_id: "%f %f %f" % _float_to_color(int(gr.pmap[v_id][REPORT][metric]), gr.pmap[MINS][metric], gr.pmap[MAXES][metric])
+
+def _set_style_for_all_metrics(g, metric=LATENCY):
+  g.vstyle['label'] = lambda gr, v_id: "%s | { lat: %s | ii: %s | DSP: %s | FF: %s | LUT: %s} " % (gr.pmap[v_id][NAME], gr.pmap[v_id][REPORT]['average_case_latency'],
+                                                                                         gr.pmap[v_id][REPORT]['interval_max'], gr.pmap[v_id][REPORT]['DSP48E'],
+                                                                                         gr.pmap[v_id][REPORT]['FF'], gr.pmap[v_id][REPORT]['LUT'])
+  g.style['label'] = lambda gr: f"Tot. II: {gr.pmap[TOTAL][II]}\nTot. Latency: {gr.pmap[TOTAL][LATENCY]}"
   g.vstyle['fillcolor'] = lambda gr, v_id: "%f %f %f" % _float_to_color(int(gr.pmap[v_id][REPORT][metric]), gr.pmap[MINS][metric], gr.pmap[MAXES][metric])
 
 def _create_graph_for_all_metrics(g, folder="graphs"):
@@ -51,7 +61,7 @@ def _create_graph_for_all_metrics(g, folder="graphs"):
 def build_graph(main_func, name_main_fn, tasks, report_dir):  
 
   g = hgr.HGraph()  
-  _set_style_for_metric(g, 'best_case_latency')
+  _set_style_for_all_metrics(g)
   # g.vstyle['label'] = lambda gr, v_id: gr.pmap[v_id][NAME] 
   calls = main_func.query('call{CallExpr}', where = lambda call: len(call.children) > 0)    
 
@@ -69,6 +79,9 @@ def build_graph(main_func, name_main_fn, tasks, report_dir):
         
   used = {}
   reports, maxes, mins = parse.parseReportForTasks(keysToIds.keys(), name_main_fn, report_dir)
+
+  g.pmap[TOTAL] = parse.parseOverallReport(name_main_fn, report_dir)
+  
   g.pmap[MAXES] = maxes
   g.pmap[MINS] = mins
   for key in keysToIds.keys():    

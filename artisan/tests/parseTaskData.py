@@ -6,10 +6,9 @@ import matplotlib.pyplot as plt
 
 CSYNTH = "_csynth"
 
-def parseTask(name, report_dir, filename):  
+def parseTask(report_dir, filename):  
 
-  if filename is None:
-    print(f"Report not found for task '{name}'")
+  if filename is None:    
     return None
 
   with open(f'{report_dir}/{filename}', 'r') as file:
@@ -34,6 +33,10 @@ def parseTask(name, report_dir, filename):
 
             return output_report
 
+def parseOverallReport(project_name, report_dir):
+  filename = f"{project_name}{CSYNTH}.xml"
+  return parseTask(report_dir, filename)
+
 
 def parseReportForTasks(tasks, project_name, report_dir):
   modules = parseModuleList(project_name, report_dir)  
@@ -43,8 +46,9 @@ def parseReportForTasks(tasks, project_name, report_dir):
   mins = {}
   for task in tasks:
     
-    report = parseTask(task, report_dir, f"{filenames[task]}{CSYNTH}.xml")
+    report = parseTask(report_dir, f"{filenames[task]}{CSYNTH}.xml")
     if report is None:
+      print(f"Report not found for task '{task}'")
       continue
     reports[task] = report
 
