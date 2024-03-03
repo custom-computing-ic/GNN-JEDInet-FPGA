@@ -4,6 +4,7 @@ import sys
 import yaml
 import parseTaskData as parse
 import matplotlib.pyplot as plt
+import matplotlib.colors as clrs
 
 ASSUME = 'assume'
 TASKS = 'tasks'
@@ -20,20 +21,37 @@ def _gen_next_name(name):
   keysToReplicas[name] = 2
   return f"{name} 2"
 
-def _float_to_color(number, min=0, max=10):
-  color_map = plt.get_cmap('viridis')
-  float_value = number / (max - min)  
-  hsva = color_map(float_value)
-  # print(f"Color: {hsva}")
-  return hsva[:3]
+def _float_to_color(number, min=0, max=1):
+  color_map = plt.get_cmap('coolwarm')
+  if max - min == 0:
+    float_value = number
+  else:
+    float_value = number / (max - min)  
+  rgba = color_map(float_value)  
+  hsv = clrs.rgb_to_hsv(rgba[:3])  
+  return tuple(hsv)
 
-def build_graph(main_func, name_main_fn, tasks, report_dir):
-  NAME = 'name'
-  FUNC = 'func'
-  REPORT = 'report'
+NAME = 'name'
+FUNC = 'func'
+REPORT = 'report'
+MAXES = 'maxes'
+MINS = 'mins'
+
+def _set_style_for_metric(g, metric):
+  g.vstyle['label'] = lambda gr, v_id: "%s | { %s } " % (gr.pmap[v_id][NAME], gr.pmap[v_id][REPORT][metric])
+  g.style['label'] = metric
+  g.vstyle['fillcolor'] = lambda gr, v_id: "%f %f %f" % _float_to_color(int(gr.pmap[v_id][REPORT][metric]), gr.pmap[MINS][metric], gr.pmap[MAXES][metric])
+
+def _create_graph_for_all_metrics(g, folder="graphs"):
+  metrics = g.pmap[MAXES].keys()
+  for metric in metrics:
+    _set_style_for_metric(g, metric)
+    g.render(filename=f"{folder}/{metric}")
+
+def build_graph(main_func, name_main_fn, tasks, report_dir):  
+
   g = hgr.HGraph()  
-  g.vstyle['label'] = lambda gr, v_id: "%s | { %s } " % (gr.pmap[v_id][NAME], gr.pmap[v_id][REPORT]['best_case_latency'])
-  g.vstyle['fillcolor'] = lambda gr, v_id: "%f %f %f" % _float_to_color(int(gr.pmap[v_id][REPORT]['best_case_latency']))
+  _set_style_for_metric(g, 'best_case_latency')
   # g.vstyle['label'] = lambda gr, v_id: gr.pmap[v_id][NAME] 
   calls = main_func.query('call{CallExpr}', where = lambda call: len(call.children) > 0)    
 
@@ -50,7 +68,9 @@ def build_graph(main_func, name_main_fn, tasks, report_dir):
       g.pmap[id][OUTPUTS] = task[k][OUTPUTS]
         
   used = {}
-  reports = parse.parseReportForTasks(keysToIds.keys(), name_main_fn, report_dir)  
+  reports, maxes, mins = parse.parseReportForTasks(keysToIds.keys(), name_main_fn, report_dir)
+  g.pmap[MAXES] = maxes
+  g.pmap[MINS] = mins
   for key in keysToIds.keys():    
     used[key] = False
 
@@ -160,6 +180,7 @@ if len(sys.argv) > 2:
 # include: relative path to jedi50p_baseline_u1/ (workdir)
 # ast = art.Ast("../../jedi50p_baseline_u1/jedi.cpp -I ../artisan/include")
 # report_dir = "/mnt/ccnas2/bdp/ad4220/GNN-JEDInet-FPGA/jedi_folded_2/prj_cmd01/jedi_prj/solution1/syn/report"
+
 path = "/mnt/ccnas2/bdp/ad4220/hls4ml-tutorial/model1/hls4ml_prj_df/firmware/"
 report_dir = "/mnt/ccnas2/bdp/ad4220/hls4ml-tutorial/model1/hls4ml_prj_df/myproject_prj/solution1/syn/report"
 ast = art.Ast(f"{path}myproject.cpp -I {path}ap_types/")
@@ -169,7 +190,9 @@ main_fn = ast.query('fn{FunctionDecl}', where=lambda fn: fn.name == name_main_fu
 df_graph = build_dataflow_graph(config, name_main_func, ast, main_fn[0].fn, report_dir)
 
 # graph = build_graph(main_fn[0].fn, [])
-df_graph.render()
+# df_graph.render()
+# _create_graph_for_all_metrics(df_graph)
+df_graph.view()
 # graph.view()
 # arrays = filter_array_defined(main_fn[0].fn, get_array_args(graph))
 

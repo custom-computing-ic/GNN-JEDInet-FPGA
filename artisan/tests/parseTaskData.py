@@ -38,13 +38,29 @@ def parseTask(name, report_dir, filename):
 def parseReportForTasks(tasks, project_name, report_dir):
   modules = parseModuleList(project_name, report_dir)  
   filenames = _matchModules(tasks, modules)  
-  reports = {}  
+  reports = {}
+  maxes = {}
+  mins = {}
   for task in tasks:
     
     report = parseTask(task, report_dir, f"{filenames[task]}{CSYNTH}.xml")
-    if report is not None:
-      reports[task] = report
-  return reports
+    if report is None:
+      continue
+    reports[task] = report
+
+    for metric in report.keys():
+      val = float(report[metric].split()[0])
+      if metric not in maxes:
+        maxes[metric] = val
+        mins[metric] = val
+        continue
+
+      if maxes[metric] < val:
+        maxes[metric] = val
+      if mins[metric] > val:
+        mins[metric] = val
+
+  return reports, maxes, mins
 
 def _matchModules(tasks, modules):
   filenames = {}
