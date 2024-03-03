@@ -4,6 +4,8 @@ from typing import Dict, List, Optional
 from os import listdir
 import matplotlib.pyplot as plt
 
+sys.path.append("/mnt/ccnas2/bdp/ad4220/utility")
+from xmlParse import plotAllTasks
 CSYNTH = "_csynth"
 
 def parseTask(report_dir, filename):  
@@ -113,4 +115,8 @@ def parseModuleList(project_name, report_dir):
       if line == start:
         return modules
       modules.append(_extractModule(line))
+
+def plotData(reports):
+  plotAllTasks(reports)
+
 
