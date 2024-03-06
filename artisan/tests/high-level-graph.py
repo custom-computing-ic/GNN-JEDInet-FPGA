@@ -188,19 +188,42 @@ class ArrayPartitioningStrategy:
 
 name_main_func = "jedi"
 config = "config.yml"
+src_path = "../../jedi_folded_2/jedi.cpp"
+include = "../artisan/include"
+report_dir = "/mnt/ccnas2/bdp/ad4220/GNN-JEDInet-FPGA/jedi_folded_2/prj_cmd01/jedi_prj/solution1/syn/report"
+experiment_name = "folded_merged"
 if len(sys.argv) > 1:
   name_main_func = sys.argv[1]
 
 if len(sys.argv) > 2:
   config = sys.argv[2]
 
+
+if len(sys.argv) > 3:
+  src_path = sys.argv[3]
+  
+if len(sys.argv) > 4:
+  include = sys.argv[4]
+
+if len(sys.argv) > 5:
+  report_dir = sys.argv[5]
+
+if len(sys.argv) > 6:
+  experiment_name = sys.argv[6]
+
 # include: relative path to jedi50p_baseline_u1/ (workdir)
 # ast = art.Ast("../../jedi50p_baseline_u1/jedi.cpp -I ../artisan/include")
 # report_dir = "/mnt/ccnas2/bdp/ad4220/GNN-JEDInet-FPGA/jedi_folded_2/prj_cmd01/jedi_prj/solution1/syn/report"
 
-path = "/mnt/ccnas2/bdp/ad4220/hls4ml-tutorial/model1/hls4ml_prj_df/firmware/"
-report_dir = "/mnt/ccnas2/bdp/ad4220/hls4ml-tutorial/model1/hls4ml_prj_df/myproject_prj/solution1/syn/report"
-ast = art.Ast(f"{path}myproject.cpp -I {path}ap_types/")
+# path = "/mnt/ccnas2/bdp/ad4220/hls4ml-tutorial/model1/hls4ml_prj_df/firmware/"
+# report_dir = "/mnt/ccnas2/bdp/ad4220/hls4ml-tutorial/model1/hls4ml_prj_df/myproject_prj/solution1/syn/report"
+# ast = art.Ast(f"{path}myproject.cpp -I {path}ap_types/")
+
+# path = "/mnt/ccnas2/bdp/ad4220/hls4ml-tutorial/model1_fusion/hls4ml_prj_df/firmware/"
+# report_dir = "/mnt/ccnas2/bdp/ad4220/hls4ml-tutorial/model1_fusion/hls4ml_prj_df/myproject_prj/solution1/syn/report"
+# ast = art.Ast(f"{path}myproject.cpp -I {path}ap_types/")
+
+ast = art.Ast(f"{src_path} -I {include}")
 
 main_fn = ast.query('fn{FunctionDecl}', where=lambda fn: fn.name == name_main_func)
 
@@ -209,9 +232,9 @@ main_fn = ast.query('fn{FunctionDecl}', where=lambda fn: fn.name == name_main_fu
 df_graph = DataflowGraph.build_dataflow_graph(config, name_main_func, ast, main_fn[0].fn, report_dir)
 
 # graph = build_graph(main_fn[0].fn, [])
-# df_graph.render()
+df_graph.render(filename=experiment_name)
 # _create_graph_for_all_metrics(df_graph)
-df_graph.view()
+# df_graph.view()
 # graph.view()
 # arrays = filter_array_defined(main_fn[0].fn, get_array_args(graph))
 
